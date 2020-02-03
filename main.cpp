@@ -13,7 +13,7 @@ int main(){
     while(getline(arch, linea)){
         istringstream datos(linea);
         datos >> comando;
-        switch(comando|64){
+        switch(comando|32){
             //Accesar dirección virtual
             case 'a': break;
             //Comentario
