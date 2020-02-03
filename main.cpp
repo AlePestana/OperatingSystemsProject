@@ -10,9 +10,9 @@ struct Proceso{
     vector<int> pagM;
     vector<int> pagS;
     int t_start;
-    int page_faults=0;
-    int turnaround=-1;
-    Proceso(int t_s) : t_start(t_s) { }
+    int page_faults;
+    int turnaround;
+    Proceso(int t_s) : pagM(), pagS(), t_start(t_s), page_faults(0), turnaround(-1) { }
 };
 
 //Memoria real
@@ -66,7 +66,10 @@ void P(int n, int p){
     //Revisa si existe en mapa de procesos, si no, se crea
     if(!ind_procesos.count(p)){
         //Se crea proceso
-        procesos[ind_procesos[p]] = Proceso(t_actual);
+        Proceso procesoP(t_actual);
+        cout << "Se crea el proceso" << endl;
+        ind_procesos[p] = procesos.size();
+        procesos.push_back(procesoP); 
     }
     //Se carga a la memoria
     cargar_a_memoria(p,n);
