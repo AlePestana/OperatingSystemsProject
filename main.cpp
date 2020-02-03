@@ -17,7 +17,10 @@ int main(){
             //Accesar dirección virtual
             case 'a': break;
             //Comentario
-            case 'c': break;
+            case 'c': 
+            if(linea.length() > 2)
+            cout << linea.substr(2) << "\n"; 
+            break;
             //Fin (devolver turnaround promedio, num de page faults, num total de swap-in y swap-out)
             case 'f': break;
             //Exit
