@@ -1,11 +1,20 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
+#include <vector>
 
 using namespace std;
 
 int main(){
+
+    //Se abre el archivo
     ifstream arch("ArchivoTrabajo.txt");
+
+    //Se inicializan variables
+    vector<int> M(128,0);
+    vector<int> S(128,0);
+    unordered_map<int, vector<int>> debug_map;
     char comando;
     int dato1, dato2, dato3;
     string linea;
@@ -47,7 +56,7 @@ int main(){
             //Cargar un proceso
             case 'p': 
                 if(datos >> dato1 >> dato2)
-                    
+
             break;
             
             //Ignorar linea en caso default
