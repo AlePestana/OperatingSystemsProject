@@ -7,9 +7,9 @@
 using namespace std;
 
 //Memoria real
-vector<int> M(128,0);
+vector<pair<int,int>> M(128,make_pair(0,0));
 //Area de swapping
-vector<int> S(128,0);
+vector<pair<int,int>> S(128,make_pair(0,0));
 
 /* 
 Funcion de acceso:
@@ -20,15 +20,16 @@ m: Booleano que determina si se modifica o es solo lectura
 
 */
 void A(int d, int p, int m){
-
+    cout << "A " << d << " " << p << " " << m << "\n";
 }
 
 void P(int size, int id){
+    cout << "P " << size << " " << id << "\n";
     
 }
 
 void L(int id){
-
+    cout << "L " << id << "\n";
 }
 
 int main(){
@@ -74,9 +75,9 @@ int main(){
 
             //Liberar páginas de un proceso
             case 'l': 
-                datos >> dato1;
                 //Liberar memoria en dato1
-                L(dato1);
+                if(datos >> dato1);
+                    L(dato1);
 
             break;
             
