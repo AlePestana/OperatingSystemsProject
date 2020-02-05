@@ -3,6 +3,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <vector>
+#include <queue>
 
 using namespace std;
 
@@ -24,7 +25,29 @@ int t_actual;
 //Mapa de procesos
 unordered_map<int,int> ind_procesos;
 vector<Proceso> procesos;
+//Queues para Memoria M y Memoria S
+queue<int> queueM;
+queue<int> queueS;
 
+//Funcion Swap-Out con algoritmo FIFO
+void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso) {
+    bool iterar = true;
+    int numPag = direccionV/16;
+    for (int i = 0; i < numPag; i++) {
+        int indice = queueM.front();
+        while (iterar) {
+            int i = 0;
+            if (S[i] == 0){
+                S[i] = M[indice];
+                queueS.push(i);
+                iterar = false;
+            }
+            i++;
+        }
+        M[indice] = 0;
+        queueM.pop();
+    }
+}
 /* 
 Funcion de acceso:
 d: Direccion virtual
