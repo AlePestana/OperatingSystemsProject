@@ -30,7 +30,7 @@ queue<int> queueM;
 queue<int> queueS;
 
 //Funcion Swap-Out con algoritmo FIFO
-void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso) {
+void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso, int &pageFaults) {
     bool iterar = true;
     //Conocer el numero de marcos por usar
     int numPag = direccionV/16;
@@ -52,6 +52,7 @@ void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> 
         //Se cambia la memoria M a 0
         M[indice] = 0;
         queueM.pop();
+        pageFaults++;
     }
 }
 /* 
