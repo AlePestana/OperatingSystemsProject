@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <queue>
+#include <algorithm>
 
 using namespace std;
 
@@ -30,7 +31,7 @@ queue<int> queueM;
 queue<int> queueS;
 
 //Funcion Swap-Out con algoritmo FIFO
-void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso, int &pageFaults) {
+void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int &page_faults) {
     bool iterar = true;
     //Conocer el numero de marcos por usar
     int numPag = direccionV/16;
@@ -52,7 +53,36 @@ void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> 
         //Se cambia la memoria M a 0
         M[indice] = 0;
         queueM.pop();
-        pageFaults++;
+        //Se agrega errores
+        page_faults++;
+    }
+}
+//Funcion Swap-In con algoritmo FIFO
+void swapInFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int &page_faults) {
+    if (!(find(M.begin(), M.end(), 0) != M.end())) {
+        swapOutFIFO(M, S, queueM, queueS, direccionV, page_faults);
+    }
+    bool iterar = true;
+    int numPag = direccionV/16;
+    //Para cada pagina a "swappear"...
+    for (int i = 0; i < numPag; i++) {
+        //El primero que entro
+        int indice = queueS.front();
+        while (iterar) {
+            int i = 0;
+            //Si se encuentra una casilla vacía en M
+            if (M[i] == 0){
+                //Swap In
+                M[i] = S[indice];
+                queueM.push(i);
+                iterar = false;
+            }
+            i++;
+        }
+        //Se cambia la memoria S a 0
+        S[indice] = 0;
+        queueS.pop();
+    
     }
 }
 /* 
