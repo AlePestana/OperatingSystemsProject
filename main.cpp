@@ -85,6 +85,25 @@ void swapInFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &
     
     }
 }
+
+//Funcion que libere las paginas del proceso de queue
+void liberarQueue(vector<int> memoria, int idProceso, queue<int> &queueMemoria) {
+    vector<int> indicesBorrar;
+    for (int i = 0; i < memoria.size(); i++) {
+        if (memoria[i] == idProceso) {
+            indicesBorrar.push_back(i);
+        }
+    }
+    queue<int> queueSubstitution;
+    queueSubstitution.swap(queueMemoria);
+    for (int i = 0; i < queueSubstitution.size(); i++) {
+        if (queueSubstitution.front() == indicesBorrar[i]) {
+            queueSubstitution.pop();
+        }
+        queueMemoria.push(queueSubstitution.front());
+        queueSubstitution.pop();
+    }
+}
 /* 
 Funcion de acceso:
 d: Direccion virtual
@@ -143,10 +162,12 @@ p: Numero de proceso a liberar
 */
 void L(int p){
     cout << "L " << p << "\n";
-    //Se libera la memoria
+   //Se libera la memoria
+    liberarQueue(M, p, queueM);
     for(int i:procesos[ind_procesos[p]].pagM){
         M[i] = 0;
     }
+    liberarQueue(S, p, queueS);
     for(int i:procesos[ind_procesos[p]].pagS){
         S[i] = 0;
     }
