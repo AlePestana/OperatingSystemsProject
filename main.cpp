@@ -162,10 +162,12 @@ p: Numero de proceso a liberar
 */
 void L(int p){
     cout << "L " << p << "\n";
-    //Se libera la memoria
+   //Se libera la memoria
+    liberarQueue(M, p, queueM);
     for(int i:procesos[ind_procesos[p]].pagM){
         M[i] = 0;
     }
+    liberarQueue(S, p, queueS);
     for(int i:procesos[ind_procesos[p]].pagS){
         S[i] = 0;
     }
