@@ -85,6 +85,25 @@ void swapInFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &
     
     }
 }
+
+//Funcion que libere las paginas del proceso de queue
+void liberarQueue(vector<int> memoria, int idProceso, queue<int> &queueMemoria) {
+    vector<int> indicesBorrar;
+    for (int i = 0; i < memoria.size(); i++) {
+        if (memoria[i] == idProceso) {
+            indicesBorrar.push_back(i);
+        }
+    }
+    queue<int> queueSubstitution;
+    queueSubstitution.swap(queueMemoria);
+    for (int i = 0; i < queueSubstitution.size(); i++) {
+        if (queueSubstitution.front() == indicesBorrar[i]) {
+            queueSubstitution.pop();
+        }
+        queueMemoria.push(queueSubstitution.front());
+        queueSubstitution.pop();
+    }
+}
 /* 
 Funcion de acceso:
 d: Direccion virtual
