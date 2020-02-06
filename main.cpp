@@ -22,6 +22,10 @@ struct Proceso{
 vector<int> M(128,0);
 //Area de swapping
 vector<int> S(128,0);
+//Contadores swap-in y swap-out
+int sIn = 0, sOut = 0;
+//Turnaround promedio
+double turnaroundPromedio=0;
 //Mapa de procesos
 unordered_map<int,int> ind_procesos;
 vector<Proceso> procesos;
@@ -30,7 +34,7 @@ queue<int> queueM;
 queue<int> queueS;
 
 //Funcion Swap-Out con algoritmo FIFO
-void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int &page_faults) {
+void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso) {
     bool iterar = true;
     //Conocer el numero de marcos por usar
     int numPag = direccionV/16;
@@ -53,14 +57,14 @@ void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> 
         M[indice] = 0;
         queueM.pop();
         //Se agrega errores
-        page_faults++;
+        ++procesos[ind_procesos[idProceso]].page_faults;
     }
 }
 //Funcion Swap-In con algoritmo FIFO
-void swapInFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int &page_faults) {
+void swapInFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso) {
     //Si no hay espacio disponible en M, se hace swap-out
     if (!(find(M.begin(), M.end(), 0) != M.end())) {
-        swapOutFIFO(M, S, queueM, queueS, direccionV, page_faults);
+        swapOutFIFO(M, S, queueM, queueS, direccionV, idProceso);
     }
     bool iterar = true;
     int numPag = direccionV/16;
@@ -120,7 +124,7 @@ void A(int d, int p, int m){
 //Revisar si M tiene espacio disponible de tamano n
 bool hay_espacio_en_M(int n){
     int count=0;
-    for(int &i:M) if(i==0)++count;
+    for(int &i:M) if(i==0) ++count;
     return count>=n;
 }
 
@@ -129,7 +133,6 @@ void cargar_a_memoria(int id, int tamano){
     //Se revisa que hay espacio disponible en la memoria M
     if(!hay_espacio_en_M(tamano)){
         //Swap-out de M
-        // ++procesos[id].page_faults;
         //Update de pagM y de pagS en el proceso
     }
     //Llenar M en el espacio encontrado
@@ -227,16 +230,38 @@ int main(){
                 cout << "\n";
             break;
 
+           //Exit (sale el programa) 
+            case 'e': 
+                cout << "Gracias por utilizarme!\nHasta la proxima! :)\n";
+                return 0;            
+            break;
+            
             //Fin (devolver turnaround promedio, num de page faults, num total de swap-in y swap-out)
             case 'f': 
-                
+                turnaroundPromedio=0;
 
-            break;
+                //Se imprimen estadisticas
+                for(auto &it: ind_procesos){
+                    turnaroundPromedio+=procesos[it.second].turnaround;
+                    cout << "Turnaround de proceso " << it.first << ": " << procesos[it.second].turnaround << "\n";
+                }
+                turnaroundPromedio/=procesos.size();
+                cout << "Turnaround promedio: " << turnaroundPromedio << "ms" << endl;
+                for(auto &it: ind_procesos){
+                    cout << "Page Faults del proceso " << it.first << ": " << procesos[it.second].page_faults << "\n";
+                }
+                cout << "Total de swap-ins: " << sIn << "\n";
+                cout << "Total de swap-outs: " << sOut << "\n";
 
-            //Exit
-            case 'e': 
-                
-                return 0;            
+                //Se liberan todos los datos
+                sIn=0;
+                sOut=0;
+                while(!queueM.empty()) queueM.pop();
+                while(!queueS.empty()) queueS.pop();
+                ind_procesos.clear();
+                procesos.clear();
+                fill(M.begin(),M.end(), 0);
+                fill(S.begin(),S.end(), 0);
             break;
 
             //Liberar páginas de un proceso
@@ -244,14 +269,12 @@ int main(){
                 //Liberar memoria en dato1
                 if(datos >> dato1);
                     L(dato1);
-
             break;
             
             //Cargar un proceso
             case 'p': 
                 if(datos >> dato1 >> dato2)
                     P(dato1,dato2);
-
             break;
             
             //Ignorar linea en caso default
