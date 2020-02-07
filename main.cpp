@@ -29,29 +29,31 @@ double turnaroundPromedio=0;
 //Mapa de procesos
 unordered_map<int,int> ind_procesos;
 vector<Proceso> procesos;
-//Queues para Memoria M y Memoria S
+//Queues para Memoria M
 queue<int> queueM;
-queue<int> queueS;
 
 //Funcion Swap-Out con algoritmo FIFO
-void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso) {
+void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, int direccionV, int idProceso) {
     bool iterar = true;
     //Conocer el numero de marcos por usar
-    int numPag = direccionV/16;
+    int cantPag = direccionV/16;
     //Para cada pagina a "swappear"...
-    for (int i = 0; i < numPag; ++i) {
+    for (int i = 0; i < cantPag; ++i) {
         //El primero que entro
         int indice = queueM.front();
-        while (iterar) {
-            int i = 0;
+        int j = 0;
+        while (iterar && j<S.size()) {
             //Si se encuentra una casilla vacía en S
-            if (S[i] == 0){
+            if (S[j] == 0){
                 //Swap Out
-                S[i] = M[indice];
-                queueS.push(i);
+                S[j] = M[indice];
+                //Actualizar pagM y pagS
+                cout << "Página " << indice << " del proceso " << M[indice] << " swappeada al marco " << j << " del area de swapping";
+                procesos[ind_procesos[M[indice]]].pagM.erase(procesos[ind_procesos[M[indice]]].pagM.begin() + indice);
+                procesos[ind_procesos[M[indice]]].pagS.push_back(j);
                 iterar = false;
             }
-            ++i;
+            ++j;
         }
         //Se cambia la memoria M a 0
         M[indice] = 0;
@@ -61,33 +63,35 @@ void swapOutFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> 
     }
 }
 //Funcion Swap-In con algoritmo FIFO
-void swapInFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, queue<int> &queueS, int direccionV, int idProceso) {
+void swapInFIFO(vector<int> &M, vector<int> &S, queue<int> &queueM, int direccionV, int idProceso) {
     //Si no hay espacio disponible en M, se hace swap-out
     if (!(find(M.begin(), M.end(), 0) != M.end())) {
-        swapOutFIFO(M, S, queueM, queueS, direccionV, idProceso);
+        //Ponemos 16 como parametro porque en este caso solo queremos sacar una página para meter la que se nos pide accesar
+        swapOutFIFO(M, S, queueM, 16, idProceso);
     }
     bool iterar = true;
     int numPag = direccionV/16;
-    //Para cada pagina a "swappear"...
-    for (int i = 0; i < numPag; ++i) {
-        //El primero que entro
-        int indice = queueS.front();
-        int j = 0;
-        while (iterar && j<M.size()) {
-            //Si se encuentra una casilla vacía en M
-            if (M[j] == 0){
-                //Swap In
-                M[j] = S[indice];
-                queueM.push(j);
-                iterar = false;
-            }
-            ++j;
+    //Obtener el indice de la página en memoria S
+    int pagMover = procesos[ind_procesos[idProceso]].pagS[numPag];
+    int j = 0;
+    //Mientras que no encuentre casilla vacía en M...
+    while (iterar && j<M.size()) {
+        //Si se encuentra una casilla vacía en M
+        if (M[j] == 0){
+            //Swap In
+            M[j] = S[pagMover];
+            queueM.push(j);
+            //Actualizar pagM y pagS
+            cout << "Se localizo la pagina  " << numPag << " del proceso " << S[pagMover] << " que estaba en la posicion " << pagMover << " de swapping y se cargo al marco " << j;
+            procesos[ind_procesos[idProceso]].pagS.erase(procesos[ind_procesos[idProceso]].pagS.begin() + pagMover);
+            procesos[ind_procesos[idProceso]].pagM.push_back(j);
+            iterar = false;
         }
-        //Se cambia la memoria S a 0
-        S[indice] = 0;
-        queueS.pop();
-    
+        ++j;
     }
+    //Se cambia la memoria S a 0
+    S[pagMover] = 0;
+    
 }
 
 //Funcion que libere las paginas del proceso de queue
@@ -100,7 +104,8 @@ void liberarQueue(vector<int> memoria, int idProceso, queue<int> &queueMemoria) 
     }
     queue<int> queueSubstitution;
     queueSubstitution.swap(queueMemoria);
-    for (int i = 0; i < queueSubstitution.size(); ++i) {
+    int tamQueueSub = queueSubstitution.size();
+    for (int i = 0; i < tamQueueSub; ++i) {
         if (queueSubstitution.front() == indicesBorrar[i]) {
             queueSubstitution.pop();
         }
@@ -183,7 +188,6 @@ void L(int p){
     for(int i:procesos[ind_procesos[p]].pagM){
         M[i] = 0;
     }
-    liberarQueue(S, p, queueS);
     for(int i:procesos[ind_procesos[p]].pagS){
         S[i] = 0;
     }
@@ -257,7 +261,6 @@ int main(){
                 sIn=0;
                 sOut=0;
                 while(!queueM.empty()) queueM.pop();
-                while(!queueS.empty()) queueS.pop();
                 ind_procesos.clear();
                 procesos.clear();
                 fill(M.begin(),M.end(), 0);
