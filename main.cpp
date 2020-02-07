@@ -143,12 +143,16 @@ void cargar_a_memoria(int id, int tamano){
     //Llenar M en el espacio encontrado
     //Se llena pagM en el proceso
     cout << "Indices asignados:\n";
-    for(int i=0; i<M.size(); ++i) {
-        if(i==0){
+    int cantPags = tamano/16;
+    int i = 0;
+    while(cantPags != 0 && i <= M.size()) {
+        if(M[i]==0){
             M[i]=id;
             procesos[ind_procesos[id]].pagM.push_back(i);
             cout << i << " ";
+            cantPags--;
         }
+        ++i;
     }
     cout << "\n\n";
 }
