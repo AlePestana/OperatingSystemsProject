@@ -12,8 +12,8 @@ using namespace std;
 
 //Estructura Proceso que guarda toda la informacion necesaria de un proceso
 struct Proceso{
-    vector<int> pagM; //Indice del vector M en el que estan las paginas del proceso
-    vector<int> pagS; //Indice del vector S (de swapping) en el que estan las paginas del proceso en el area de swapping
+    vector<pair<int,int>> pagM; //Indice del vector M en el que estan las paginas del proceso - contiene el numero de pagina y el indice en el que la pagina esta en M
+    vector<pair<int,int>> pagS; //Indice del vector S (de swapping) en el que estan las paginas del proceso en el area de swapping - contiene el numero de pagina y el indice en el que la pagina esta en S
     clock_t t_start; //Tiempo en el que inicia el proceso
     int page_faults; //Numero de swap-outs
     int turnaround; //Tiempo de salida - Tiempo de inicio
@@ -21,10 +21,10 @@ struct Proceso{
 };
 
   //Variables globales
-//Memoria real
-vector<int> M(128,0);
-//Area de swapping
-vector<int> S(128,0);
+//Memoria real - contiene el id del proceso y el numero de pag
+vector<pair<int,int>> M(128,make_pair(0,0));
+//Area de swapping - contiene el id del proceso y el numero de pag
+vector<pair<int,int>> S(128,make_pair(0,0));
 //Contadores swap-in y swap-out
 int sIn = 0, sOut = 0;
 //Turnaround promedio
@@ -32,67 +32,65 @@ double turnaroundPromedio=0;
 //Mapa de procesos
 unordered_map<int,int> ind_procesos;
 vector<Proceso> procesos;
-//Queues para Memoria M
-queue<int> queueM;
+//Queue para Memoria M para determinar cual pagina sacar al necesitar hacer swapping - contiene id del proceso y numero de pagina
+queue<pair<int,int>> queueM;
 //Opcion para escoger algoritmo
 char opcion;
 
 
   //Funciones
-//Funcion Swap-Out para algoritmos FIFO y LRU
-void swapOutA(int direccionV, int idProceso) {
-    bool iterar = true;
-    //Conocer el numero de marcos por usar
-    int cantPag = direccionV/16;
-    //Para cada pagina a "swappear"...
-    for (int i = 0; i < cantPag; ++i) {
-        //El primero que entro
-        int indice = queueM.front();
-        int j = 0;
-        while (iterar && j<S.size()) {
-            //Si se encuentra una casilla vacía en S
-            if (S[j] == 0){
-                //Swap Out
-                S[j] = M[indice];
-                //Actualizar pagM y pagS
-                cout << "- Página " << indice << " del proceso " << M[indice] << " swappeada al marco " << j << " del area de swapping";
-                procesos[ind_procesos[M[indice]]].pagM.erase(procesos[ind_procesos[M[indice]]].pagM.begin() + indice);
-                procesos[ind_procesos[M[indice]]].pagS.push_back(j);
-                iterar = false;
-            }
-            ++j;
-        }
-        //Se cambia la memoria M a 0
-        M[indice] = 0;
-        queueM.pop();
-        //Se agrega errores
-        ++procesos[ind_procesos[idProceso]].page_faults;
-    }
 
-    //Sumar al numero de swap outs realizados
-    ++sOut;
+//Revisar si M tiene espacio disponible de tamano n
+int hay_espacio_en_M(int n){
+    int count=0;
+    for (int i = 0; i < M.size(); i++) {
+      if(M[i].first==0) {
+        ++count;
+      }
+    }
+    // --------->>> for(int &i:M) if(i==0) ++count;
+    if(count < n) {
+      return n-count;
+    }
+    return 0;
 }
+
 
 //Funcion que hace swap out de M
 //Se llama cuando se intenta cargar un proceso a la memoria y no hay suficiente espacio
 //NOTA: se utiliza la misma funcion debido a que la unica diferencia entre ambos algoritmos es el orden de la queueM a la que tienen acceso. Esto quiere decir que, lo que se modifica es el orden de la queueM, no la funcionalidad de hacer swap out (sacar un paginas de la memoria principal y pasarlas a la memoria secundaria S)
 void swapOut(int idProceso, int cantPagASwap) {
     //Para cada pagina a "swappear"...
+    //El primero que entro
+    pair<int,int> indice = queueM.front();
     for (int i = 0; i < cantPagASwap; ++i) {
         bool iterar = true;
-        //El primero que entro
-        int indice = queueM.front();
         int j = 0;
         while (iterar && j<S.size()) {
             //Si se encuentra una casilla vacía en S
-            if (S[j] == 0){
+            if (S[j].first == 0){
                 //Swap Out
-                S[j] = M[indice];
+                //Estoy asignando un vector pair a un vector pair
+                S[j] = indice;
 
+                cout << "- Página " << indice.second << " del proceso " << indice.first << " swappeada al marco " << j << " del area de swapping\n";
                 //Actualizar pagM y pagS
-                cout << "- Página " << indice << " del proceso " << M[indice] << " swappeada al marco " << j << " del area de swapping\n";
-                procesos[ind_procesos[M[indice]]].pagM.erase(procesos[ind_procesos[M[indice]]].pagM.begin());
-                procesos[ind_procesos[M[indice]]].pagS.push_back(j);
+                // procesos[ind_procesos[M[indice.first]]].pagM.erase(procesos[ind_procesos[M[indice]]].pagM.begin());
+
+                //Borrar de M el vector pair que acabo de cambiar al area de swapping
+                 auto it = procesos[ind_procesos[idProceso]].pagM.begin();
+                 while(it != procesos[ind_procesos[idProceso]].pagM.end()) {
+                     if(it->first == indice.first) {
+                     it = procesos[ind_procesos[idProceso]].pagM.erase(it);
+                     }
+                }
+//                for (int a = 0; a < procesos[ind_procesos[idProceso]].pagM.size(); a++) {
+//                  if(procesos[ind_procesos[idProceso]].pagM[a].first == indice.first) {
+//                    // procesos[ind_procesos[idProceso]].pagM.erase(procesos[ind_procesos[idProceso]].pagM[a]]);
+//                  }
+//                }
+                  //Guardar num de pag e indice en el que quedo en S
+                procesos[ind_procesos[indice.first]].pagS.push_back(make_pair(indice.second,j));
                 iterar = false;
                 //Sumar al numero de swap outs realizados
                 ++sOut;
@@ -100,44 +98,79 @@ void swapOut(int idProceso, int cantPagASwap) {
             ++j;
         }
         //Se cambia la memoria M a 0
-        M[indice] = 0;
+        for (int b = 0; b < M.size(); b++) {
+            if (M[b].first == indice.first) {
+                M[b] = make_pair(0,0);
+                break;
+            }
+        }
         queueM.pop();
         //Se agrega al numero de page faults del proceso
-        ++procesos[ind_procesos[M[indice]]].page_faults;
+        ++procesos[ind_procesos[indice.first]].page_faults;
     }
 }
+
 
 //Funcion Swap-In
 //Su objetivo es desplegar en pantalla la informacion relacionada a una pagina que se esta tratando de accesar pero se encuentra en la memoria secundaria, por lo que se hace swap in para ponerla en la memoria principal
 void swapIn(int numPag, int idProceso) {
     //Si no hay espacio disponible en M, se hace swap-out
-    if (!(find(M.begin(), M.end(), 0) != M.end())) {
+    //Solo quiero ver si hay espacio para 1 pag
+    if (hay_espacio_en_M(1) > 0) {
         //La cantidad de paginas a swappear es 1 debido a que, cuando se utiliza la funcion de accesar, solo accede a 1 pagina
         swapOut(idProceso, 1);
     }
     bool iterar = true;
+    pair<int,int> pagAMover;
+    //Obtener vector pair - o pag - que quiero pasar a memoria M
+    for (int a = 0; a < procesos[ind_procesos[idProceso]].pagS.size(); a++) {
+      if(procesos[ind_procesos[idProceso]].pagS[a].first == numPag) {
+        pagAMover = procesos[ind_procesos[idProceso]].pagS[a];
+        break;
+      }
+    }
     //Obtener el indice de la página en memoria S
-    int pagMover = procesos[ind_procesos[idProceso]].pagS[numPag];
+    // int pagMover = procesos[ind_procesos[idProceso]].pagS[numPag];
     int j = 0;
     //Mientras que no encuentre casilla vacía en M...
     while (iterar && j<M.size()) {
         //Si se encuentra una casilla vacía en M
-        if (M[j] == 0){
+        if (M[j].first == 0){
             //Swap In
-            M[j] = S[pagMover];
-            queueM.push(j);
+            M[j] = S[pagAMover.second];
+            queueM.push(make_pair(idProceso,j));
             //Actualizar pagM y pagS
-            cout << "- Se localizo la pagina  " << numPag << " del proceso " << S[pagMover] << " que estaba en la posicion " << pagMover << " de swapping y se cargo al marco " << j;
+            cout << "- Se localizo la pagina  " << numPag << " del proceso " << idProceso << " que estaba en la posicion " << pagAMover.second << " de swapping y se cargo al marco " << j;
 
             //Update de pagM y de pagS en el proceso
-            procesos[ind_procesos[idProceso]].pagS.erase(procesos[ind_procesos[idProceso]].pagS.begin() + pagMover);
-            procesos[ind_procesos[idProceso]].pagM.push_back(j);
+            //Borrar de S el vector pair que acabo de cambiar a M
+             auto it = procesos[ind_procesos[idProceso]].pagS.begin();
+             while(it != procesos[ind_procesos[idProceso]].pagS.end()) {
+                 //if(it->first == pagAMover.first)
+                 if(*it == pagAMover) {
+                 it = procesos[ind_procesos[idProceso]].pagS.erase(it);
+                 }
+             }
+
+//            for (int a = 0; a < procesos[ind_procesos[idProceso]].pagS.size(); a++) {
+//              if(procesos[ind_procesos[idProceso]].pagS[a].first == numPag) {
+//                procesos[ind_procesos[idProceso]].pagS.erase(a);
+//              }
+//            }
+            procesos[ind_procesos[idProceso]].pagM.push_back(make_pair(idProceso,j));
             iterar = false;
         }
         ++j;
     }
     //Se cambia la memoria S a 0
-    S[pagMover] = 0;
+    S[pagAMover.second] = make_pair(0, 0);
+//    for (int b = 0; b < S.size(); b++) {
+//        if (S[b].first == idProceso) {
+//            S[b] = make_pair(0,0);
+//            break;
+//        }
+//    }
+
     //Sumar al numero de swap ins realizados
     ++sIn;
 }
@@ -187,21 +220,38 @@ void A(int d, int p, int m){
     //Necesario redondear hacia arriba ya que se le debe asignar espacio a todo el proceso (y no quedar con una porcion del proceso sin el)
     int numPag = ceil(double(d)/16);
     //Inicializacion de indice en M de la pagina que se busca desplegar (i) y la direccion real (r)
-    int i, r;
+    int i = -1;
+    int r;
 
     //Desplazamiento
     int desplazamiento = d%16;
 
-    //Buscar id del proceso en M
-    if(find(M.begin(), M.end(), p) != M.end() &&
-       find(procesos[ind_procesos[p]].pagM.begin(), procesos[ind_procesos[p]].pagM.end(), numPag) != procesos[ind_procesos[p]].pagM.end()) {
-      //Si esta, buscar la r = indice de pagM de la estructura proceso, por lo que, buscar el indice (de M) en el que la pag esta en el vector pagM
-      i = procesos[ind_procesos[p]].pagM[numPag];
-    } else {
-      //Si pagina no esta, buscarla en el area de swapping (S)
+    //Buscar pag en el vector pair pagM del proceso
+    for (int a = 0; a < procesos[ind_procesos[p]].pagM.size(); a++) {
+      if(procesos[ind_procesos[p]].pagM[a].first == numPag) {
+        //Obtener indice donde esta la pag
+        i = procesos[ind_procesos[p]].pagM[a].second;
+        break;
+      }
+    }
+
+    if(i == -1) {
+      //Significa que pagina no esta en el vecto pair pagM - es decir, que no esta en M
+      //Por lo tanto, buscarla en el area de swapping (S)
       swapIn(numPag,p);
     }
-    //Si no esta en S, desplegar error de que la pagina no existe
+    // ------>>> //Buscar id del proceso en M
+    // if(find(M.begin(), M.end(), p) != M.end() && procesos[ind_procesos[p]].pagM.first
+    //
+    //
+    //    find(procesos[ind_procesos[p]].pagM.begin(), procesos[ind_procesos[p]].pagM.end(), numPag) != procesos[ind_procesos[p]].pagM.end()) {
+    //   //Si esta, buscar la r = indice de pagM de la estructura proceso, por lo que, buscar el indice (de M) en el que la pag esta en el vector pagM
+    //   i = procesos[ind_procesos[p]].pagM[numPag];
+    // } else {
+    //   //Si pagina no esta, buscarla en el area de swapping (S)
+    //   swapIn(numPag,p);
+    // }
+    // //Si no esta en S, desplegar error de que la pagina no existe
 
     //Calculo de direccion real: r * 16 + desplazamiento
     r = i*16+desplazamiento;
@@ -214,20 +264,9 @@ void A(int d, int p, int m){
     cout << "- Dir. Virtual: " << d << "\n- Dir. Real: " << r << "\n\n";
 }
 
-//Revisar si M tiene espacio disponible de tamano n
-int hay_espacio_en_M(int n){
-    int count=0;
-    for(int &i:M) if(i==0) ++count;
-    if(count < n) {
-      return n-count;
-    }
-    return 0;
-}
-
 //Funcion para cargar un proceso a memoria
 //Si no hay suficiente espacio, utiliza alguno de los dos algoritmos para hacer swpping
 void cargar_a_memoria(int id, int tamano){
-
     tamano = ceil(double(tamano)/16);
     if(double(tamano)/16 > 128) {
       cout << "De acuerdo a lo declarado en las instrucciones, la longitud maxima de un proceso debe ser de 2048 bytes.\n";
@@ -242,13 +281,15 @@ void cargar_a_memoria(int id, int tamano){
       cout << "Indices asignados:\n";
       int cantPags = tamano;
       int i = 0;
+      int numPag = 0;
       while(cantPags != 0 && i <= M.size()) {
-          if(M[i]==0){
-              M[i]=id;
-              procesos[ind_procesos[id]].pagM.push_back(i);
-              queueM.push(i);
+          if(M[i].first==0){
+              M[i]=make_pair(id,numPag);
+              procesos[ind_procesos[id]].pagM.push_back(make_pair(numPag,i));
+              queueM.push(make_pair(numPag,i));
               cout << i << " ";
               cantPags--;
+              numPag++;
           }
           ++i;
       }
@@ -275,7 +316,6 @@ void P(int n, int p){
     }
     //Se carga a la memoria
     cargar_a_memoria(p,n);
-
 }
 
 /*
@@ -287,22 +327,30 @@ void L(int p){
     cout << "--------------\n";
    //Se libera la memoria
     // liberarQueue(M, p, queueM);
-    for(int i:procesos[ind_procesos[p]].pagM){
-        M[i] = 0;
+    //Liberar de M
+    for (int i = 0; i < procesos[ind_procesos[p]].pagM.size(); i++) {
+        int indiceALiberar =  procesos[ind_procesos[p]].pagM[i].second;
+        M[indiceALiberar] = make_pair(0, 0);
     }
-    for(int i:procesos[ind_procesos[p]].pagS){
-        S[i] = 0;
+    //Liberar de S
+    for (int i = 0; i < procesos[ind_procesos[p]].pagS.size(); i++) {
+        int indiceALiberar =  procesos[ind_procesos[p]].pagS[i].second;
+        S[indiceALiberar] = make_pair(0, 0);
     }
     //Calcular el turnaround time
     procesos[ind_procesos[p]].turnaround = clock()-procesos[ind_procesos[p]].t_start;
     cout << "- Turnaround:\n" << procesos[ind_procesos[p]].turnaround << "ms \n";
     //Paginas en M liberadas
     cout << "- Paginas en M liberadas:\n";
-    for(int i: procesos[ind_procesos[p]].pagM) cout << i << " ";
+    for (int i = 0; i < procesos[ind_procesos[p]].pagM.size(); i++) {
+        cout << procesos[ind_procesos[p]].pagM[i].first << " ";
+    }
     cout << "\n";
     //Paginas en S liberadas
     cout << "- Paginas en S liberadas:\n";
-    for(int j: procesos[ind_procesos[p]].pagS) cout << j << " ";
+    for (int i = 0; i < procesos[ind_procesos[p]].pagM.size(); i++) {
+        cout << procesos[ind_procesos[p]].pagM[i].first << " ";
+    }
     cout << "\n\n";
     //Borro registro de paginas del proceso
     procesos[ind_procesos[p]].pagM.clear();
@@ -339,8 +387,8 @@ void F() {
   while(!queueM.empty()) queueM.pop();
   ind_procesos.clear();
   procesos.clear();
-  fill(M.begin(),M.end(), 0);
-  fill(S.begin(),S.end(), 0);
+  fill(M.begin(),M.end(), make_pair(0, 0));
+  fill(S.begin(),S.end(), make_pair(0, 0));
 }
 
 int main(){
