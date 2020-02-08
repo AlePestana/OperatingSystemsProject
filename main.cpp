@@ -62,8 +62,8 @@ int hay_espacio_en_M(int n){
 void swapOut(int idProceso, int cantPagASwap) {
     //Para cada pagina a "swappear"...
     //El primero que entro
-    pair<int,int> indice = queueM.front();
     for (int i = 0; i < cantPagASwap; ++i) {
+        pair<int,int> indice = queueM.front();
         bool iterar = true;
         int j = 0;
         while (iterar && j<S.size()) {
@@ -78,14 +78,20 @@ void swapOut(int idProceso, int cantPagASwap) {
                 // procesos[ind_procesos[M[indice.first]]].pagM.erase(procesos[ind_procesos[M[indice]]].pagM.begin());
 
                 //Borrar de M el vector pair que acabo de cambiar al area de swapping
-                 auto it = procesos[ind_procesos[idProceso]].pagM.begin();
-                 while(it != procesos[ind_procesos[idProceso]].pagM.end()) {
-                     if(it->first == indice.first) {
-                     it = procesos[ind_procesos[idProceso]].pagM.erase(it);
+                // cout << procesos[ind_procesos[idProceso-1]].pagM.size();
+                 auto it = procesos[ind_procesos[idProceso-1]].pagM.begin();
+                 while(it != procesos[ind_procesos[idProceso-1]].pagM.end()) {
+                     if(it->first == indice.second) {
+                     it = procesos[ind_procesos[idProceso-1]].pagM.erase(it);
+                         break;
                      }
                 }
-//                for (int a = 0; a < procesos[ind_procesos[idProceso]].pagM.size(); a++) {
-//                  if(procesos[ind_procesos[idProceso]].pagM[a].first == indice.first) {
+                // cout << procesos[ind_procesos[idProceso-1]].pagM.size();
+//                for (int a = 0; a < procesos[ind_procesos[idProceso-1]].pagM.size(); a++) {
+//                  if(procesos[ind_procesos[idProceso-1]].pagM[a].first == indice.second) {
+//                      procesos[ind_procesos[idProceso-1]].pagM[a].first = 0;
+//                      procesos[ind_procesos[idProceso-1]].pagM[a].second = 0;
+//                      break;
 //                    // procesos[ind_procesos[idProceso]].pagM.erase(procesos[ind_procesos[idProceso]].pagM[a]]);
 //                  }
 //                }
@@ -227,6 +233,7 @@ void A(int d, int p, int m){
     int desplazamiento = d%16;
 
     //Buscar pag en el vector pair pagM del proceso
+    cout << procesos[ind_procesos[p]].pagM.size();
     for (int a = 0; a < procesos[ind_procesos[p]].pagM.size(); a++) {
       if(procesos[ind_procesos[p]].pagM[a].first == numPag) {
         //Obtener indice donde esta la pag
@@ -286,7 +293,7 @@ void cargar_a_memoria(int id, int tamano){
           if(M[i].first==0){
               M[i]=make_pair(id,numPag);
               procesos[ind_procesos[id]].pagM.push_back(make_pair(numPag,i));
-              queueM.push(make_pair(numPag,i));
+              queueM.push(make_pair(id,numPag));
               cout << i << " ";
               cantPags--;
               numPag++;
@@ -333,6 +340,7 @@ void L(int p){
         M[indiceALiberar] = make_pair(0, 0);
     }
     //Liberar de S
+    cout << procesos[ind_procesos[p]].pagS.size();
     for (int i = 0; i < procesos[ind_procesos[p]].pagS.size(); i++) {
         int indiceALiberar =  procesos[ind_procesos[p]].pagS[i].second;
         S[indiceALiberar] = make_pair(0, 0);
@@ -348,8 +356,8 @@ void L(int p){
     cout << "\n";
     //Paginas en S liberadas
     cout << "- Paginas en S liberadas:\n";
-    for (int i = 0; i < procesos[ind_procesos[p]].pagM.size(); i++) {
-        cout << procesos[ind_procesos[p]].pagM[i].first << " ";
+    for (int i = 0; i < procesos[ind_procesos[p]].pagS.size(); i++) {
+        cout << procesos[ind_procesos[p]].pagS[i].first << " ";
     }
     cout << "\n\n";
     //Borro registro de paginas del proceso
