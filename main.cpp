@@ -12,7 +12,7 @@ using namespace std;
 //Estructura Proceso que guarda toda la informacion necesaria de un proceso
 struct Proceso{
     vector<int> pagM; //Indice del vector M en el que estan las paginas del proceso
-    vector<int> pagS; //Indice del vector S (de swapping) en el que estan las paginas del proceso
+    vector<int> pagS; //Indice del vector S (de swapping) en el que estan las paginas del proceso en el area de swapping
     clock_t t_start; //Tiempo en el que inicia el proceso
     int page_faults; //Numero de swap-outs
     int turnaround; //Tiempo de salida - Tiempo de inicio
@@ -33,6 +33,8 @@ unordered_map<int,int> ind_procesos;
 vector<Proceso> procesos;
 //Queues para Memoria M
 queue<int> queueM;
+//Opcion para escoger algoritmo
+char opcion;
 
 
   //Funciones
@@ -122,6 +124,12 @@ void liberarQueue(vector<int> memoria, int idProceso, queue<int> &queueMemoria) 
     }
 }
 
+//Funcion que se encarga de agregar una pagina a la queueM cuando es accesada
+//NOTA: esta es la funcion que diferencia LRU de FIFO debido a que, la unica diferencia entre estos algoritmos es que LRU busca en la queueM a la pagina menos utilizada. Esto quiere decir que, si leo una pagina (con la funcion A), estoy "utilizando" esa pagina, por lo que seria la mas utilizada, mientras que la queueM se queda con las paginas en el orden en el que fueron cargadas a la memoria. Por lo que esta funcion se asegura de que, si se accesa una pagina, esta pasa al ultimo lugar de la queueM, indicando asi que es la pagina mas utilizada recientemente.
+void agregarPagLRU(int d, int p, int m){
+
+}
+
 /*
 Funcion de acceso:
 d: Direccion virtual
@@ -132,11 +140,23 @@ m: Booleano que determina si se modifica o es solo lectura
 void A(int d, int p, int m){
     cout << "\nA " << d << " " << p << " " << m << "\n";
     cout << "-------------\n";
-}
 
-//Funcion que se encarga de agregar una pagina a la queueM cuando es accesada
-//NOTA: esta es la funcion que diferencia LRU de FIFO debido a que, la unica diferencia entre estos algoritmos es que LRU busca en la queueM a la pagina menos utilizada. Esto quiere decir que, si leo una pagina (con la funcion A), estoy "utilizando" esa pagina, por lo que seria la mas utilizada, mientras que la queueM se queda con las paginas en el orden en el que fueron cargadas a la memoria. Por lo que esta funcion se asegura de que, si se accesa una pagina, esta pasa al ultimo lugar de la queueM, indicando asi que es la pagina mas utilizada recientemente.
-void agregarPagLRU(int d, int p, int m){
+    //Inicializacion de variable de la direccion real
+    int r;
+
+    //Buscar pagina en M
+
+    //Si pagina no esta en la memoria, buscarla en el area de swapping (S)
+
+    //Si no esta en S, desplegar error de que la pagina no existe
+
+    //Si el algoritmo escogido por el usuario es LRU, llamar funcion adicional para declarar la pagina accesada como la mas usada recientemente
+    if(opcion == 'L' || opcion == 'l') {
+    //Agregar pagina de proceso accesada a la queueM
+    agregarPagLRU(d,p,m);
+  }
+
+    cout << "Dir. Virtual: " << d << ".\nDir. Real: " << r << "\n\n";
 }
 
 //Revisar si M tiene espacio disponible de tamano n
@@ -257,11 +277,10 @@ int main(){
     string comando;
     int dato1, dato2, dato3;
     string linea;
-    char opcion;
 
     //Se pide cual algoritmo a utilizar para realizar el reemplazo de paginas
     cout << "Bienvenido!\n";
-    cout << "Ingresa el algoritmo a utilizar (F - FIFO o L - LRU): ";
+    cout << "Ingresa el algoritmo a utilizar (f - FIFO o l - LRU): ";
     cin >> opcion;
 
 
@@ -273,16 +292,12 @@ int main(){
             case 'a':
                 if(datos >> dato1 >> dato2 >> dato3)
                     A(dato1,dato2,dato3);
-                    if(opcion == 'L') {
-                    //Agregar pagina de proceso accesada a la queueM
-                    agregarPagLRU(dato1,dato2,dato3);
-                  }
             break;
 
             //Comentario
             case 'c':
                 if(linea.length() > 2)
-                    cout << linea.substr(2);
+                    cout << "C " << linea.substr(2);
                 cout << "\n";
             break;
 
