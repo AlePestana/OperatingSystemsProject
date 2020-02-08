@@ -212,48 +212,54 @@ void A(int d, int p, int m){
     cout << "\nA " << d << " " << p << " " << m << "\n";
     cout << "-------------\n";
 
-    //Inicializacion del numero de pagina
-    //Necesario redondear hacia arriba ya que se le debe asignar espacio a todo el proceso (y no quedar con una porcion del proceso sin el)
-    int numPag = ceil(double(d)/16);
-    //Inicializacion de indice en M de la pagina que se busca desplegar (i) y la direccion real (r)
-    int i = -1;
-    int r;
+    //Verificar que existe el proceso que se esta tratando de accesar
+    if (procesos.size() == 0) {
+        cout << "No hay procesos actualmente" << endl;
+    } else {
 
-    //Desplazamiento
-    int desplazamiento = d%16;
+        //Inicializacion del numero de pagina
+        //Necesario redondear hacia arriba ya que se le debe asignar espacio a todo el proceso (y no quedar con una porcion del proceso sin el)
+        int numPag = ceil(double(d)/16);
+        //Inicializacion de indice en M de la pagina que se busca desplegar (i) y la direccion real (r)
+        int i = -1;
+        int r;
 
-    //Buscar pag en el vector pair pagM del proceso
-    // cout << procesos[ind_procesos[p]].pagM.size();
-    for (int a = 0; a < procesos[ind_procesos[p]].pagM.size(); a++) {
-      if(procesos[ind_procesos[p]].pagM[a].first == numPag) {
-        //Obtener indice donde esta la pag
-        i = procesos[ind_procesos[p]].pagM[a].second;
-        break;
-      }
+        //Desplazamiento
+        int desplazamiento = d%16;
+
+        //Buscar pag en el vector pair pagM del proceso
+        // cout << procesos[ind_procesos[p]].pagM.size();
+        for (int a = 0; a < procesos[ind_procesos[p]].pagM.size(); a++) {
+          if(procesos[ind_procesos[p]].pagM[a].first == numPag) {
+            //Obtener indice donde esta la pag
+            i = procesos[ind_procesos[p]].pagM[a].second;
+            break;
+          }
+        }
+
+        if(i == -1) {
+          //Significa que pagina no esta en el vecto pair pagM - es decir, que no esta en M
+          //Por lo tanto, buscarla en el area de swapping (S)
+          swapIn(numPag,p);
+        }
+        //Calculo de direccion real: r * 16 + desplazamiento
+        r = i*16+desplazamiento;
+
+        //Si el algoritmo escogido por el usuario es LRU, llamar funcion adicional para declarar la pagina accesada como la mas usada recientemente
+        if(opcion == 'L' || opcion == 'l') {
+            //Agregar pagina de proceso accesada a la queueM
+            agregarPagLRU(p,numPag);
+        }
+
+        cout << "\n- Dir. Virtual: " << d << "\n- Dir. Real: " << r << "\n\n";
     }
-
-    if(i == -1) {
-      //Significa que pagina no esta en el vecto pair pagM - es decir, que no esta en M
-      //Por lo tanto, buscarla en el area de swapping (S)
-      swapIn(numPag,p);
-    }
-    //Calculo de direccion real: r * 16 + desplazamiento
-    r = i*16+desplazamiento;
-
-    //Si el algoritmo escogido por el usuario es LRU, llamar funcion adicional para declarar la pagina accesada como la mas usada recientemente
-    if(opcion == 'L' || opcion == 'l') {
-        //Agregar pagina de proceso accesada a la queueM
-        agregarPagLRU(p,numPag);
-    }
-
-    cout << "- Dir. Virtual: " << d << "\n- Dir. Real: " << r << "\n\n";
 }
 
 //Funcion para cargar un proceso a memoria
 //Si no hay suficiente espacio, utiliza alguno de los dos algoritmos para hacer swpping
 void cargar_a_memoria(int id, int tamano){
     tamano = ceil(double(tamano)/16);
-    if(double(tamano)/16 > 128) {
+    if(tamano > 128) {
       cout << "De acuerdo a lo declarado en las instrucciones, la longitud maxima de un proceso debe ser de 2048 bytes.\n";
     } else {
       //Se revisa que hay espacio disponible en la memoria M
