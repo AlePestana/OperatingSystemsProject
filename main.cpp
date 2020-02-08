@@ -6,6 +6,7 @@
 #include <queue>
 #include <algorithm>
 #include <ctime>
+#include <cmath>
 
 using namespace std;
 
@@ -40,7 +41,7 @@ char opcion;
   //Funciones
 //Funcion Swap-Out para algoritmos FIFO y LRU
 //NOTA: se utiliza la misma funcion debido a que la unica diferencia entre ambos algoritmos es el orden de la queueM a la que tienen acceso. Esto quiere decir que, lo que se modifica es el orden de la queueM, no la funcionalidad de hacer swap out (sacar un paginas de la memoria principal y pasarlas a la memoria secundaria S)
-void swapOut(vector<int> &M, vector<int> &S, queue<int> &queueM, int direccionV, int idProceso) {
+void swapOutA(int direccionV, int idProceso) {
     bool iterar = true;
     //Conocer el numero de marcos por usar
     int cantPag = direccionV/16;
@@ -68,14 +69,50 @@ void swapOut(vector<int> &M, vector<int> &S, queue<int> &queueM, int direccionV,
         //Se agrega errores
         ++procesos[ind_procesos[idProceso]].page_faults;
     }
+
+    //Sumar al numero de swap outs realizados
+    ++sOut;
+}
+
+//Funcion que hace swap out de M
+//Se llama cuando se intenta cargar un proceso a la memoria y no hay suficiente espacio
+void swapOut(int idProceso, int cantPagASwap) {
+    //Para cada pagina a "swappear"...
+    for (int i = 0; i < cantPagASwap; ++i) {
+        bool iterar = true;
+        //El primero que entro
+        int indice = queueM.front();
+        int j = 0;
+        while (iterar && j<S.size()) {
+            //Si se encuentra una casilla vacía en S
+            if (S[j] == 0){
+                //Swap Out
+                S[j] = M[indice];
+
+                //Actualizar pagM y pagS
+                cout << "Página " << indice << " del proceso " << M[indice] << " swappeada al marco " << j << " del area de swapping\n";
+                procesos[ind_procesos[M[indice]]].pagM.erase(procesos[ind_procesos[M[indice]]].pagM.begin());
+                procesos[ind_procesos[M[indice]]].pagS.push_back(j);
+                iterar = false;
+                //Sumar al numero de swap outs realizados
+                ++sOut;
+            }
+            ++j;
+        }
+        //Se cambia la memoria M a 0
+        M[indice] = 0;
+        queueM.pop();
+        //Se agrega al numero de page faults del proceso
+        ++procesos[ind_procesos[M[indice]]].page_faults;
+    }
 }
 
 //Funcion Swap-In
-void swapIn(vector<int> &M, vector<int> &S, queue<int> &queueM, int direccionV, int idProceso) {
+void swapIn(int direccionV, int idProceso) {
     //Si no hay espacio disponible en M, se hace swap-out
     if (!(find(M.begin(), M.end(), 0) != M.end())) {
-        //Ponemos 16 como parametro porque en este caso solo queremos sacar una página para meter la que se nos pide accesar
-        swapOut(M, S, queueM, 16, idProceso);
+        //La cantidad de paginas a swappear es 1 debido a que, cuando se utiliza la funcion de accesar, solo accede a 1 pagina
+        swapOut(idProceso, 1);
     }
     bool iterar = true;
     int numPag = direccionV/16;
@@ -101,7 +138,8 @@ void swapIn(vector<int> &M, vector<int> &S, queue<int> &queueM, int direccionV, 
     }
     //Se cambia la memoria S a 0
     S[pagMover] = 0;
-
+    //Sumar al numero de swap ins realizados
+    ++sIn;
 }
 
 //Funcion que libera las paginas del proceso de queue
@@ -156,38 +194,49 @@ void A(int d, int p, int m){
     agregarPagLRU(d,p,m);
   }
 
-    cout << "Dir. Virtual: " << d << ".\nDir. Real: " << r << "\n\n";
+    cout << "Dir. Virtual: " << d << "\nDir. Real: " << r << "\n\n";
 }
 
 //Revisar si M tiene espacio disponible de tamano n
-bool hay_espacio_en_M(int n){
+int hay_espacio_en_M(int n){
     int count=0;
     for(int &i:M) if(i==0) ++count;
-    return count>=n;
+    if(count < n) {
+      return n-count;
+    }
+    return 0;
 }
 
 //Funcion para cargar un proceso a memoria
 //Si no hay suficiente espacio, utiliza alguno de los dos algoritmos para hacer swpping
 void cargar_a_memoria(int id, int tamano){
-    //Se revisa que hay espacio disponible en la memoria M
-    if(!hay_espacio_en_M(tamano)){
-        //Swap-out de M
-    }
-    //Llenar M en el espacio encontrado
-    //Se llena pagM en el proceso
-    cout << "Indices asignados:\n";
-    int cantPags = tamano/16;
-    int i = 0;
-    while(cantPags != 0 && i <= M.size()) {
-        if(M[i]==0){
-            M[i]=id;
-            procesos[ind_procesos[id]].pagM.push_back(i);
-            cout << i << " ";
-            cantPags--;
-        }
-        ++i;
-    }
-    cout << "\n\n";
+
+    tamano = ceil(double(tamano)/16);
+    if(double(tamano)/16 > 128) {
+      cout << "De acuerdo a lo declarado en las instrucciones, la longitud maxima de un proceso debe ser de 2048 bytes.\n";
+    } else {
+      //Se revisa que hay espacio disponible en la memoria M
+      if(hay_espacio_en_M(tamano) > 0){
+          //Swap-out de M
+          swapOut(id, tamano);
+      }
+      //Llenar M en el espacio encontrado
+      //Se llena pagM en el proceso
+      cout << "Indices asignados:\n";
+      int cantPags = tamano;
+      int i = 0;
+      while(cantPags != 0 && i <= M.size()) {
+          if(M[i]==0){
+              M[i]=id;
+              procesos[ind_procesos[id]].pagM.push_back(i);
+              queueM.push(i);
+              cout << i << " ";
+              cantPags--;
+          }
+          ++i;
+      }
+      cout << "\n\n";
+  }
 }
 
 /*
@@ -246,7 +295,7 @@ void L(int p){
     cout << "\nL " << p << "\n";
     cout << "--------------\n";
    //Se libera la memoria
-    liberarQueue(M, p, queueM);
+    // liberarQueue(M, p, queueM);
     for(int i:procesos[ind_procesos[p]].pagM){
         M[i] = 0;
     }
