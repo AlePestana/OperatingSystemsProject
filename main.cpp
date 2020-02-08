@@ -82,6 +82,8 @@ void swapOut(int idProceso, int cantPagASwap) {
                      if(it->first == indice.second) {
                      it = procesos[ind_procesos[idProceso-1]].pagM.erase(it);
                          break;
+                     } else {
+                         ++it;
                      }
                 }
                 //Guardar num de pag e indice en el que quedo en S
@@ -178,12 +180,25 @@ void liberarQueue(vector<int> memoria, int idProceso, queue<int> &queueMemoria) 
 
 //Funcion que se encarga de agregar una pagina a la queueM cuando es accesada
 //NOTA: esta es la funcion que diferencia LRU de FIFO debido a que, la unica diferencia entre estos algoritmos es que LRU busca en la queueM a la pagina menos utilizada. Esto quiere decir que, si leo una pagina (con la funcion A), estoy "utilizando" esa pagina, por lo que seria la mas utilizada, mientras que la queueM se queda con las paginas en el orden en el que fueron cargadas a la memoria. Por lo que esta funcion se asegura de que, si se accesa una pagina, esta pasa al ultimo lugar de la queueM, indicando asi que es la pagina mas utilizada recientemente.
-void agregarPagLRU(int d, int p, int m){
+void agregarPagLRU(int idProceso, int pagAQuitar){
   //Recibir pag que quiero quitar de la queue
   //Vaciar todo de la queue a otra queue
     //Si encuentro esa pag que estoy buscando, no ponerla
-  //Regresar todo a queueM
-  //Agregar al final la pag (que recibi)
+    queue<pair<int, int>> aux;
+    pair<int, int> p(make_pair(idProceso, pagAQuitar));
+    while (!queueM.empty()) {
+        if(queueM.front() != p) {
+            aux.push(queueM.front());
+        }
+        queueM.pop();
+    }
+    //Regresar todo a queueM
+    while (!aux.empty()) {
+        queueM.push(aux.front());
+        aux.pop();
+    }
+    //Agregar al final la pag (que recibi)
+    queueM.push(p);
 }
 
 /*
@@ -208,7 +223,7 @@ void A(int d, int p, int m){
     int desplazamiento = d%16;
 
     //Buscar pag en el vector pair pagM del proceso
-    cout << procesos[ind_procesos[p]].pagM.size();
+    // cout << procesos[ind_procesos[p]].pagM.size();
     for (int a = 0; a < procesos[ind_procesos[p]].pagM.size(); a++) {
       if(procesos[ind_procesos[p]].pagM[a].first == numPag) {
         //Obtener indice donde esta la pag
@@ -224,11 +239,12 @@ void A(int d, int p, int m){
     }
     //Calculo de direccion real: r * 16 + desplazamiento
     r = i*16+desplazamiento;
+
     //Si el algoritmo escogido por el usuario es LRU, llamar funcion adicional para declarar la pagina accesada como la mas usada recientemente
     if(opcion == 'L' || opcion == 'l') {
-    //Agregar pagina de proceso accesada a la queueM
-    agregarPagLRU(r,p,m);
-  }
+        //Agregar pagina de proceso accesada a la queueM
+        agregarPagLRU(p,numPag);
+    }
 
     cout << "- Dir. Virtual: " << d << "\n- Dir. Real: " << r << "\n\n";
 }
