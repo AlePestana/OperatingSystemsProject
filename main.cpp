@@ -159,21 +159,21 @@ void swapIn(int numPag, int idProceso) {
 }
 
 //Funcion que libera las paginas del proceso de queue
-void liberarQueue(vector<int> memoria, int idProceso, queue<int> &queueMemoria) {
-    vector<int> indicesBorrar;
-    for (int i = 0; i < memoria.size(); ++i) {
-        if (memoria[i] == idProceso) {
-            indicesBorrar.push_back(i);
+void liberarQueue(int idProceso) {
+    vector<pair<int, int>> pagsABorrar;
+    for (int i = 0; i < M.size(); ++i) {
+        if (M[i].first == idProceso) {
+            pagsABorrar.push_back(M[i]);
         }
     }
-    queue<int> queueSubstitution;
-    queueSubstitution.swap(queueMemoria);
+    queue<pair<int, int>> queueSubstitution;
+    queueSubstitution.swap(queueM);
     int tamQueueSub = queueSubstitution.size();
     for (int i = 0; i < tamQueueSub; ++i) {
-        if (queueSubstitution.front() == indicesBorrar[i]) {
+        if (queueSubstitution.front() == pagsABorrar[i]) {
             queueSubstitution.pop();
         }
-        queueMemoria.push(queueSubstitution.front());
+        queueM.push(queueSubstitution.front());
         queueSubstitution.pop();
     }
 }
@@ -316,7 +316,7 @@ void L(int p){
     cout << "\nL " << p << "\n";
     cout << "--------------\n";
    //Se libera la memoria
-    // liberarQueue(M, p, queueM);
+    // liberarQueue(p);
     //Liberar de M
     for (int i = 0; i < procesos[ind_procesos[p]].pagM.size(); i++) {
         int indiceALiberar =  procesos[ind_procesos[p]].pagM[i].second;
@@ -385,7 +385,7 @@ void F() {
 int main(){
 
     //Se abre el archivo
-    ifstream arch("casos.txt");
+    ifstream arch("ArchivoTrabajo.txt");
 
     //Se inicializan variables
     string comando;
